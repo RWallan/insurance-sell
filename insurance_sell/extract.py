@@ -7,7 +7,6 @@ from pandera.errors import SchemaError
 from .schemas import RawInsuranceSell
 
 DATA_PATH = Path().cwd() / 'data'
-RANDOM_STATE = 13
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
