@@ -11,7 +11,8 @@ dependencies = [
     "scikit-learn (>=1.6.1,<2.0.0)",
     "pandas (>=2.2.3,<3.0.0)",
     "pandera (>=0.22.1,<0.23.0)",
-    "taskipy (>=1.14.1,<2.0.0)"
+    "taskipy (>=1.14.1,<2.0.0)",
+    "feature-engine (>=1.8.3,<2.0.0)"
 ]
 
 
@@ -44,6 +45,7 @@ lint = "ruff check .; ruff check . --diff"
 format = "ruff check . --fix; ruff format ."
 pre_test = "task lint"
 test = "pytest -s -x -vv --cov=insurance_sell"
+post_test = "coverage html"
 
 [tool.towncrier]
 directory = "changelog.d"
