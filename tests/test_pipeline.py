@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from sklearn.exceptions import NotFittedError
 
-from insurance_sell.pipeline import StringCleaner
+from insurance_sell.pipeline import StringCleaner, create_pipeline
 
 
 def test_string_cleaner():
@@ -26,3 +26,10 @@ def test_string_cleaner_must_raise_if_not_fitted():
 
     with pytest.raises(NotFittedError):
         cleaner.transform(sample_df)
+
+
+def test_steps_created_in_pipeline():
+    expected_len = 7
+    pipeline = create_pipeline()
+
+    assert len(pipeline.steps) == expected_len
