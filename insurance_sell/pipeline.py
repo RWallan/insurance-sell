@@ -5,6 +5,7 @@ import pandas as pd
 from feature_engine import encoding, imputation
 from feature_engine.dataframe_checks import check_X
 from feature_engine.variable_handling import check_all_variables
+from sklearn import ensemble, metrics, model_selection
 from sklearn.base import BaseEstimator, TransformerMixin, check_is_fitted
 from sklearn.pipeline import Pipeline
 
@@ -158,3 +159,71 @@ def create_pipeline() -> Pipeline:
             ('ArbitraryNegativeOne', arbitrary_negative_one),
         ]
     )
+
+
+# TODO: Create a external settings
+def configure_model() -> model_selection.GridSearchCV:
+    """Create a GridSearchCV with multiple model parameters."""
+    # TODO: Create a external setting to set random_state globally
+    model = ensemble.RandomForestClassifier(random_state=12)
+
+    parameters = {
+        'min_samples_leaf': [10, 25, 50, 75, 100],
+        'n_estimators': [100, 200, 500, 1000],
+        'criterion': ['gini', 'entropy'],
+        'max_depth': [5, 8, 10, 12, 15],
+    }
+    logger.info(f'GridSearchCV parameters:\n{parameters}')
+
+    return model_selection.GridSearchCV(
+        model, param_grid=parameters, cv=3, n_jobs=-1, verbose=3
+    )
+
+
+def fit_model(df: pd.DataFrame):
+    X = df[FEATURES]
+    y = df[TARGET]
+
+    preprocessor = create_pipeline()
+    model = configure_model()
+
+    model_pipeline = Pipeline(
+        steps=[('preprocessor', preprocessor), ('model', model)]
+    )
+
+    model_pipeline.fit(X, y)
+
+    return model_pipeline
+
+
+def report_metrics(y_true, y_proba, cohort: float):
+    y_pred = (y_proba[:, 1] > cohort).astype(int)
+
+    acc = metrics.accuracy_score(y_true, y_pred)
+    auc = metrics.roc_auc_score(y_true, y_pred)
+    precision = metrics.precision_score(y_true, y_pred)
+    recall = metrics.recall_score(y_true, y_pred)
+
+    return {
+        'Accuracy': acc,
+        'ROC AUC': auc,
+        'Precision': precision,
+        'Recall': recall,
+    }
+
+
+def evalute_model(  # noqa: PLR0913
+    X_train: pd.DataFrame,  # noqa: N803
+    y_train: pd.Series,
+    X_test: pd.DataFrame,  # noqa: N803
+    y_test: pd.Series,
+    model: Pipeline,
+    cohort: float = 0.5,
+):
+    y_train_proba = model.predict_proba(X_train)
+    y_test_proba = model.predict_proba(X_test)
+
+    train_metrics = report_metrics(y_train, y_train_proba, cohort)
+    test_metrics = report_metrics(y_test, y_test_proba, cohort)
+
+    return {'Train Metrics': train_metrics, 'Test Metrics': test_metrics}
