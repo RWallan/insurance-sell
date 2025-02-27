@@ -37,7 +37,7 @@ def test_steps_created_in_pipeline():
     expected_len = 7
     pipeline = create_pipeline()
 
-    assert len(pipeline.steps) == expected_len
+    assert len(pipeline) == expected_len
 
 
 def test_report_metrics():
