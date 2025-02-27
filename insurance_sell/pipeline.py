@@ -180,7 +180,7 @@ def configure_model() -> model_selection.GridSearchCV:
         'criterion': ['gini', 'entropy'],
         'max_depth': [5, 8, 10, 12, 15],
     }
-    logger.info(f'GridSearchCV parameters:\n{parameters}')
+    logger.info(f'GridSearchCV parameters: {parameters}')
 
     return model_selection.GridSearchCV(
         model, param_grid=parameters, cv=3, n_jobs=-1, verbose=3
