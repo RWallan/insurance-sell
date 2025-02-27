@@ -5,9 +5,10 @@ import pandas as pd
 from feature_engine import encoding, imputation
 from feature_engine.dataframe_checks import check_X
 from feature_engine.variable_handling import check_all_variables
+from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline
 from sklearn import ensemble, metrics, model_selection
 from sklearn.base import BaseEstimator, TransformerMixin, check_is_fitted
-from sklearn.pipeline import Pipeline
 
 FEATURES = [
     'Gender',
@@ -94,7 +95,7 @@ class StringCleaner(BaseEstimator, TransformerMixin):
 
 # TODO: Use some settings to create this pipeline.
 # TODO: Create more unit tests
-def create_pipeline() -> Pipeline:
+def create_pipeline() -> list[tuple]:
     """Create transform Pipeline."""
     logger.info(
         (
@@ -155,17 +156,15 @@ def create_pipeline() -> Pipeline:
         variables='Switch', arbitrary_number=-1
     )
 
-    return Pipeline(
-        steps=[
-            ('StringCleaner', cleaner),
-            ('FrequentImputer', frequent_imputer),
-            ('MedianImputer', median_imputer),
-            ('MissingImputer', missing_imputer),
-            ('OneHot', one_hot),
-            ('ArbitraryPositiveOne', arbitrary_positive_one),
-            ('ArbitraryNegativeOne', arbitrary_negative_one),
-        ]
-    )
+    return [
+        ('StringCleaner', cleaner),
+        ('FrequentImputer', frequent_imputer),
+        ('MedianImputer', median_imputer),
+        ('MissingImputer', missing_imputer),
+        ('OneHot', one_hot),
+        ('ArbitraryPositiveOne', arbitrary_positive_one),
+        ('ArbitraryNegativeOne', arbitrary_negative_one),
+    ]
 
 
 # TODO: Create a external settings
@@ -188,13 +187,18 @@ def configure_model() -> model_selection.GridSearchCV:
 
 
 def fit_model(X: pd.DataFrame, y: pd.Series):  # noqa: N803
-    preprocessor = create_pipeline()
+    # Resampling before pipeline because some incompatibilities is happening
+    # and I dunno how to fix it
+    pipelines = create_pipeline()
     model = configure_model()
-
-    model_pipeline = Pipeline(
-        steps=[('preprocessor', preprocessor), ('model', model)]
+    pipelines.extend(
+        [
+            ('smote', SMOTE(sampling_strategy=1.0, random_state=12)),  # type: ignore
+            ('model', model),
+        ]
     )
 
+    model_pipeline = Pipeline(steps=pipelines)
     model_pipeline.fit(X, y)
 
     return model_pipeline

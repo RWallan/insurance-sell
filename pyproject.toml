@@ -13,7 +13,8 @@ dependencies = [
     "pandera (>=0.22.1,<0.23.0)",
     "taskipy (>=1.14.1,<2.0.0)",
     "feature-engine (>=1.8.3,<2.0.0)",
-    "cyclopts (>=3.9.0,<4.0.0)"
+    "cyclopts (>=3.9.0,<4.0.0)",
+    "imbalanced-learn (>=0.13.0,<0.14.0)"
 ]
 
 [project.scripts]
