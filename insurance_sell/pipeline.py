@@ -187,10 +187,7 @@ def configure_model() -> model_selection.GridSearchCV:
     )
 
 
-def fit_model(df: pd.DataFrame):
-    X = df[FEATURES]
-    y = df[TARGET]
-
+def fit_model(X: pd.DataFrame, y: pd.Series):  # noqa: N803
     preprocessor = create_pipeline()
     model = configure_model()
 
