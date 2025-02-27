@@ -212,6 +212,7 @@ def report_metrics(y_true, y_proba, cohort: float):
     }
 
 
+# TODO: Learn how to test it
 def evalute_model(  # noqa: PLR0913
     X_train: pd.DataFrame,  # noqa: N803
     y_train: pd.Series,
