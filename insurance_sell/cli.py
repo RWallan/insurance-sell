@@ -4,6 +4,7 @@ from typing import Optional
 import pandas as pd
 from cyclopts import App
 from rich.console import Console
+from rich.table import Table
 from sklearn import model_selection
 
 from insurance_sell import __version__, pipeline
@@ -52,9 +53,41 @@ def metrics(model: Optional[str] = None):
     loaded_model = get_model(model)
 
     console.print(loaded_model['metrics'])
+
+
+@app.command
+def predict(
+    data: dict | str | Path,
+    *,
+    model: Optional[str | Path] = None,
+    output_path: Optional[str | Path] = None,
+    cohort: float = 0.5,
+):
+    if isinstance(data, dict):
+        data_ = pd.DataFrame(data)
     else:
-        model_path = model
+        # TODO: must force or adapt to file extension
+        data_ = pd.read_csv(data)
 
-    loaded_model = get_model(model_path)
+    loaded_model = get_model(model)
 
-    console.print(loaded_model['metrics'])
+    result = loaded_model['model'].predict_proba(  # type: ignore
+        data_[loaded_model['features']]
+    )
+    proba = result[:, 1]
+    pred = (proba > cohort).astype(int)
+
+    data_ = data_.assign(proba=proba, pred=pred)
+
+    if output_path:
+        data_.to_csv(output_path, index=False)
+
+    table = Table('id', 'proba', 'pred')
+    for _, row in data_.head(5).iterrows():
+        table.add_row(
+            str(row['id']),
+            str(round(row['proba'], 2)),  # type: ignore
+            str(row['pred']),
+        )
+
+    console.print(table)
