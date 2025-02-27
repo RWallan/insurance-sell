@@ -60,6 +60,8 @@ def extract_data(overwrite: bool = False):
         append_mode,
     )
 
+    return RAW_FILE
+
 
 if __name__ == '__main__':
     extract_data()
