@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 from sklearn.pipeline import Pipeline
@@ -26,5 +27,10 @@ def save_model(
     return model_file_path
 
 
-def get_model(path: str | Path):
+def get_model(path: Optional[str | Path] = None):
+    if not path:
+        path = max(
+            (Path().cwd() / 'model').glob('model_*.pkl'),
+            key=lambda file: file.stat().st_ctime,
+        )
     return pd.read_pickle(path)

@@ -49,11 +49,9 @@ def train(file_path: str | Path = Path().cwd() / 'data' / 'raw.csv'):
 
 @app.command
 def metrics(model: Optional[str] = None):
-    if not model:
-        model_path = max(
-            (Path().cwd() / 'model').glob('model_*.pkl'),
-            key=lambda file: file.stat().st_ctime,
-        )
+    loaded_model = get_model(model)
+
+    console.print(loaded_model['metrics'])
     else:
         model_path = model
 
