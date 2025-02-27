@@ -135,8 +135,15 @@ def create_pipeline() -> Pipeline:
         fill_value='Unknown',
     )
 
-    logger.info('OneHotEncoder: Tranforming `PastAccident` dropping last')
-    one_hot = encoding.OneHotEncoder(variables='PastAccident', drop_last=True)
+    logger.info(
+        (
+            'OneHotEncoder: Transforming '
+            '`PastAccident`, `Gender` and `VehicleAge` dropping last'
+        )
+    )
+    one_hot = encoding.OneHotEncoder(
+        variables=['PastAccident', 'Gender', 'VehicleAge'], drop_last=True
+    )
 
     logger.info('ArbitraryNumberImputer: Imputing `1` to `HasDrivingLicense`')
     arbitrary_positive_one = imputation.ArbitraryNumberImputer(
