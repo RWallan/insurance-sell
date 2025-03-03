@@ -4,7 +4,7 @@ from insurance_sell.settings import MinioSettings
 from insurance_sell.storage import (
     check_if_object_exists,
     client,
-    get_file_from_storage_as_df,
+    get_file_from_storage,
     send_file_to_storage,
 )
 
@@ -43,7 +43,7 @@ def test_get_file_from_object(tmp_path):
     test_data.to_csv(file, index=False)
     send_file_to_storage(file, 'test.csv')
 
-    df = get_file_from_storage_as_df(
+    df = get_file_from_storage(
         settings.BUCKET_NAME, 'test.csv', tmp_path / 'received.csv'
     )
 

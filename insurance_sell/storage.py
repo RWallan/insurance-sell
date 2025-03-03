@@ -57,12 +57,10 @@ def check_if_object_exists(bucket_name, object_name):
     return True if any(filtered_objects) else False
 
 
-def get_file_from_storage_as_df(
-    bucket_name, file, output_file
+def get_file_from_storage(
+    bucket_name, file, output_file, to_df: bool = True
 ) -> Optional[pd.DataFrame]:
     obj = client.fget_object(bucket_name, file, output_file)
 
-    if obj.object_name:
+    if to_df and obj.object_name:
         return pd.read_csv(output_file)
-
-    logger.error('An error occurred while getting the file from storage')
