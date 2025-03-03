@@ -6,23 +6,20 @@ from pandera.errors import SchemaError
 
 from .schemas import RawInsuranceSell
 
-DATA_PATH = Path().cwd() / 'data'
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def extract_data(overwrite: bool = False):
+def extract_data(filename: Path | str, overwrite: bool = False):
     """Extract data from https://github.com/prsdm/mlops-project/tree/main and export to csv.
 
     Args:
+        filename: File name to save data.
         overwrite: If True, the data extracted will overwrite existing data.
     """  # noqa: E501
-    DATA_PATH.mkdir(exist_ok=True, parents=True)
-    RAW_FILE = DATA_PATH / 'raw.csv'
     raw_data = pd.DataFrame()
 
-    append_mode = True if RAW_FILE.exists() and not overwrite else False
+    fname = Path(filename)
 
     train_data = pd.read_csv(
         'https://raw.githubusercontent.com/prsdm/mlops-project/refs/heads/main/data/train.csv',
@@ -49,19 +46,15 @@ def extract_data(overwrite: bool = False):
         return
 
     raw_data.to_csv(
-        RAW_FILE,
-        mode='a' if append_mode else 'w',
-        header=not append_mode,
+        fname,
+        mode='a' if not overwrite else 'w',
+        header=overwrite,
         index=False,
     )
     logger.info(
         'Raw data created at: %s.\nAppend mode: %s',
-        str(RAW_FILE),
-        append_mode,
+        str(fname),
+        not overwrite,
     )
 
-    return RAW_FILE
-
-
-if __name__ == '__main__':
-    extract_data()
+    return fname

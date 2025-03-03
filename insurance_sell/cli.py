@@ -1,3 +1,5 @@
+import sys
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -9,6 +11,11 @@ from sklearn import model_selection
 
 from insurance_sell import __version__, pipeline
 from insurance_sell.extract import extract_data
+from insurance_sell.storage import (
+    check_if_object_exists,
+    get_file_from_storage,
+    send_file_to_storage,
+)
 from insurance_sell.utils import get_model, save_model
 
 console = Console()
@@ -17,21 +24,47 @@ app = App(version=__version__)
 
 @app.command
 def extract(overwrite: bool = False):
-    """Extract data from https://github.com/prsdm/mlops-project/tree/main and export to csv.
+    """Extract data from https://github.com/prsdm/mlops-project/tree/main and export to minIO storage.
 
     Args:
         overwrite: If True, the data extracted will overwrite existing data.
     """  # noqa: E501
-    file = extract_data(overwrite)
-    console.print(f'Raw data created at: {file}.')
+    has_object = False
+    if not overwrite:
+        has_object = check_if_object_exists('raw', 'raw.csv')
+    overwrite_ = False if has_object and not overwrite else True
+
+    with tempfile.NamedTemporaryFile(suffix='.csv') as f:
+        if not overwrite_:
+            get_file_from_storage('raw', 'raw.csv', f.name)
+        extract_data(f.name, overwrite_)
+        info = send_file_to_storage(f.name, 'raw.csv')
+
+    console.print(
+        (
+            f'{info["output_file"]} successfully uploaded as object '
+            f'to bucket {info["bucket_name"]}.'
+        )
+    )
 
 
 @app.command
-def train(file_path: str | Path = Path().cwd() / 'data' / 'raw.csv'):
+def train(bucket_name: str, filename: str):
+    """Fit model.
+
+    Args:
+        bucket_name: Name of minIO bucket.
+        filename: Filename of minIO object.
+    """
     output_path = Path().cwd() / 'model'
     output_path.mkdir(exist_ok=True, parents=True)
 
-    df = pd.read_csv(file_path)
+    with tempfile.NamedTemporaryFile(suffix='.csv') as f:
+        df = get_file_from_storage(bucket_name, filename, f.name, to_df=True)
+    if not isinstance(df, pd.DataFrame):
+        console.print('Something went wrong while downloading data.')
+        sys.exit(1)
+
     X_train, X_test, y_train, y_test = model_selection.train_test_split(
         df[pipeline.FEATURES],
         df[pipeline.TARGET],
