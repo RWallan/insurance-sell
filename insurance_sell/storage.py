@@ -3,6 +3,8 @@ from typing import Optional, TypedDict
 
 import pandas as pd
 from minio import Minio, S3Error
+from minio.commonconfig import ENABLED
+from minio.versioningconfig import VersioningConfig
 
 from insurance_sell.settings import MinioSettings
 
@@ -21,6 +23,7 @@ client = Minio(
 def _create_bucket_if_not_exists(bucket_name: str):
     if not client.bucket_exists(bucket_name):
         client.make_bucket(bucket_name)
+        client.set_bucket_versioning(bucket_name, VersioningConfig(ENABLED))
     else:
         logger.info(f'Bucket {bucket_name} already exists. Ignoring...')
 
