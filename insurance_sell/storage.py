@@ -1,6 +1,7 @@
 import logging
-from typing import TypedDict
+from typing import Optional, TypedDict
 
+import pandas as pd
 from minio import Minio, S3Error
 
 from insurance_sell.settings import MinioSettings
@@ -44,6 +45,8 @@ def send_file_to_storage(input_file, output_file) -> ObjectInfo:
         logger.error(f'Error occurred while uploading file to storage: {e}')
 
     return {'output_file': output_file, 'bucket_name': settings.BUCKET_NAME}
+
+
 def check_if_object_exists(bucket_name, object_name):
     objects = client.list_objects(bucket_name)
 
@@ -52,3 +55,14 @@ def check_if_object_exists(bucket_name, object_name):
     )
 
     return True if any(filtered_objects) else False
+
+
+def get_file_from_storage_as_df(
+    bucket_name, file, output_file
+) -> Optional[pd.DataFrame]:
+    obj = client.fget_object(bucket_name, file, output_file)
+
+    if obj.object_name:
+        return pd.read_csv(output_file)
+
+    logger.error('An error occurred while getting the file from storage')
