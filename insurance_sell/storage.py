@@ -1,0 +1,46 @@
+import logging
+from typing import TypedDict
+
+from minio import Minio, S3Error
+
+from insurance_sell.settings import MinioSettings
+
+logger = logging.getLogger(__name__)
+
+settings = MinioSettings()  # type: ignore
+
+client = Minio(
+    'localhost:9000',
+    access_key=settings.MINIO_ACCESS_KEY,
+    secret_key=settings.MINIO_SECRET_KEY,
+    secure=False,
+)
+
+
+def _create_bucket_if_not_exists(bucket_name: str):
+    if not client.bucket_exists(bucket_name):
+        client.make_bucket(bucket_name)
+    else:
+        logger.info(f'Bucket {bucket_name} already exists. Ignoring...')
+
+
+class ObjectInfo(TypedDict):
+    output_file: str
+    bucket_name: str
+
+
+def send_file_to_storage(input_file, output_file) -> ObjectInfo:
+    _create_bucket_if_not_exists(settings.BUCKET_NAME)
+
+    try:
+        client.fput_object(settings.BUCKET_NAME, output_file, input_file)
+        logger.info(
+            (
+                f'{input_file} successfully uploaded as object {output_file} '
+                f'to bucket {settings.BUCKET_NAME}.'
+            )
+        )
+    except S3Error as e:
+        logger.error(f'Error occurred while uploading file to storage: {e}')
+
+    return {'output_file': output_file, 'bucket_name': settings.BUCKET_NAME}
