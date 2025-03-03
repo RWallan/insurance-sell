@@ -44,3 +44,11 @@ def send_file_to_storage(input_file, output_file) -> ObjectInfo:
         logger.error(f'Error occurred while uploading file to storage: {e}')
 
     return {'output_file': output_file, 'bucket_name': settings.BUCKET_NAME}
+def check_if_object_exists(bucket_name, object_name):
+    objects = client.list_objects(bucket_name)
+
+    filtered_objects = filter(
+        lambda obj: obj.object_name == object_name, objects
+    )
+
+    return True if any(filtered_objects) else False
