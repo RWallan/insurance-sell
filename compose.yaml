@@ -36,6 +36,25 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  mlflow:
+    build: ./docker/mlflow
+    image: mlflow_service
+    container_name: mlflow_service
+    ports:
+      - 5000:5000
+    environment:
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - MLFLOW_S3_IGNORE_TLS=true
+    command: mlflow server --backend-store-uri postgresql://${PG_USER}:${PG_PASSWORD}@db:5432/${PG_DATABASE} --artifacts-destination s3://mlflow --host 0.0.0.0
+    depends_on:
+      - minio
+      - db
+    networks:
+      - backend
+      - frontend
+
 volumes:
   minio_data:
   pgdata:

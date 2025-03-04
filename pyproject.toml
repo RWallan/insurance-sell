@@ -57,7 +57,6 @@ format = "ruff check . --fix; ruff format ."
 pre_test = "task lint"
 test = "pytest -s -x -vv --cov=insurance_sell"
 post_test = "coverage html"
-mlflow = "mlflow server --backend-store-uri postgresql://mlflow:mlflow@localhost:5432/mlflow --artifacts-destination s3://mlflow --host 0.0.0.0 --port 5000" # this is WEAK, DO NOT USE IN PRODUCTION
 prefect = "prefect server start"
 
 [tool.towncrier]
