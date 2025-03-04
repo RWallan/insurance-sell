@@ -4,57 +4,50 @@ import pandas as pd
 from pandera.errors import SchemaError
 from prefect import task
 from prefect.logging import get_run_logger
+from prefect.tasks import exponential_backoff
+from insurance_sell.settings import Settings
 
 from .schemas import RawInsuranceSell
 
+TAGS = ['extract', 'etl']
 
-@task
-def extract_data(filename: Path | str, overwrite: bool = False):
-    """Extract data from https://github.com/prsdm/mlops-project/tree/main and export to csv.
 
-    Args:
-        filename: File name to save data.
-        overwrite: If True, the data extracted will overwrite existing data.
-    """  # noqa: E501
-    logger = get_run_logger()
-    raw_data = pd.DataFrame()
+class Extractor:
+    _raw_data: pd.DataFrame
 
-    fname = Path(filename)
+    def __init__(self, settings: Settings):
+        """Class to handle extract tasks."""
+        self._raw_data = pd.DataFrame()
+        self._settings = settings
 
-    train_data = pd.read_csv(
-        'https://raw.githubusercontent.com/prsdm/mlops-project/refs/heads/main/data/train.csv',
+    @task(
+        name='fetch-data-from-source',
+        retries=3,
+        retry_delay_seconds=exponential_backoff(backoff_factor=10),
+        retry_jitter_factor=1,
+        tags=TAGS,
+    )
+    def fetch_data(
+        self,
+        src: str,
+    ):
+        """Fetch csv file from a source.
+
+        Args:
+            src: source from a csv file.
+        """
+        _logger = get_run_logger()
+
+        if src.split('.')[-1] != 'csv':
+            _logger.error(f'Failed to check if is a csv file from {src}')
+            raise ValueError('Source must be a csv file')
+
+        df = pd.read_csv(src)
+        try:
+            validated_data = RawInsuranceSell(df)
+            self._raw_data = pd.concat([self._raw_data, validated_data])  # type: ignore
+
+        except SchemaError as exc:
+            _logger.error(f'Failed to validate data schema. {exc}')
     )
 
-    try:
-        train_data = RawInsuranceSell(train_data)
-        raw_data = pd.concat([raw_data, train_data])  # type: ignore
-    except SchemaError as exc:
-        logger.error(f'Failed to validate `train` data schema. {exc}')
-
-    test_data = pd.read_csv(
-        'https://raw.githubusercontent.com/prsdm/mlops-project/refs/heads/main/data/test.csv',
-    )
-
-    try:
-        test_data = RawInsuranceSell(test_data)
-        raw_data = pd.concat([raw_data, test_data])  # type: ignore
-    except SchemaError as exc:
-        logger.error(f'Failed to validate `test` data schema. {exc}')
-
-    if raw_data.empty:
-        logger.error('Raw data not created. DataFrame is empty')
-        return
-
-    raw_data.to_csv(
-        fname,
-        mode='a' if not overwrite else 'w',
-        header=overwrite,
-        index=False,
-    )
-    logger.info(
-        'Raw data created at: %s.\nAppend mode: %s',
-        str(fname),
-        not overwrite,
-    )
-
-    return fname
