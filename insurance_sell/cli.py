@@ -43,8 +43,8 @@ def extract(overwrite: bool = False):
     with tempfile.NamedTemporaryFile(suffix='.csv') as f:
         if not overwrite_:
             get_file_from_storage('raw', 'raw.csv', f.name)
-        extract_data(f.name, overwrite_)
-        info = send_file_to_storage(f.name, 'raw.csv')
+        fname = extract_data(f.name, overwrite_)
+        info = send_file_to_storage(fname, 'raw.csv')
 
     console.print(
         (
