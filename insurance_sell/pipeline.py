@@ -1,4 +1,3 @@
-import logging
 from typing import Optional
 
 import mlflow
@@ -10,6 +9,9 @@ from feature_engine.dataframe_checks import check_X
 from feature_engine.variable_handling import check_all_variables
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline
+from prefect import task
+from prefect.cache_policies import NONE
+from prefect.logging import get_run_logger
 from sklearn import ensemble, metrics, model_selection
 from sklearn.base import BaseEstimator, TransformerMixin, check_is_fitted
 
@@ -23,8 +25,6 @@ FEATURES = [
     'AnnualPremium',
 ]
 TARGET = 'Result'
-
-logger = logging.getLogger(__name__)
 
 
 class StringCleaner(BaseEstimator, TransformerMixin):
@@ -98,8 +98,10 @@ class StringCleaner(BaseEstimator, TransformerMixin):
 
 # TODO: Use some settings to create this pipeline.
 # TODO: Create more unit tests
+@task
 def create_pipeline() -> list[tuple]:
     """Create transform Pipeline."""
+    logger = get_run_logger()
     logger.info(
         (
             'StringCleaner: Using `AnnualPremium` with these patterns: '
@@ -179,8 +181,10 @@ def create_pipeline() -> list[tuple]:
 
 
 # TODO: Create a external settings
+@task
 def configure_model() -> model_selection.GridSearchCV:
     """Create a GridSearchCV with multiple model parameters."""
+    logger = get_run_logger()
     # TODO: Create a external setting to set random_state globally
     model = ensemble.RandomForestClassifier(random_state=12)
 
@@ -201,9 +205,11 @@ def get_choosed_params(model: Pipeline):
     return model.steps[-1][1].best_params_
 
 
+@task(cache_policy=NONE)
 def fit_model(X: pd.DataFrame, y: pd.Series, run_id):  # noqa: N803
     # Resampling before pipeline because some incompatibilities is happening
     # and I dunno how to fix it
+    logger = get_run_logger()
     pipelines = create_pipeline()
     model = configure_model()
 
@@ -218,6 +224,7 @@ def fit_model(X: pd.DataFrame, y: pd.Series, run_id):  # noqa: N803
     model_pipeline = Pipeline(steps=pipelines)
     model_pipeline.fit(X, y)
     parameters = get_choosed_params(model_pipeline)
+    logger.info(f'Choosed params: {parameters}')
     mlflow.log_params(parameters, run_id=run_id)
     signature = mlflow.models.infer_signature(model_input=X, params=parameters)
     mlflow.sklearn.log_model(model_pipeline, 'model', signature=signature)
@@ -225,6 +232,7 @@ def fit_model(X: pd.DataFrame, y: pd.Series, run_id):  # noqa: N803
     return model_pipeline
 
 
+@task
 def report_metrics(y_true, y_proba, cohort: float, prefix: str = ''):
     y_pred = (y_proba[:, 1] > cohort).astype(int)
 
@@ -242,6 +250,7 @@ def report_metrics(y_true, y_proba, cohort: float, prefix: str = ''):
 
 
 # TODO: Learn how to test it
+@task
 def evalute_model(  # noqa: PLR0913
     X_train: pd.DataFrame,  # noqa: N803
     y_train: pd.Series,

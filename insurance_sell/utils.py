@@ -1,4 +1,3 @@
-import logging
 from typing import TypedDict
 
 import mlflow
@@ -6,8 +5,8 @@ import mlflow.models
 import mlflow.sklearn
 from imblearn.pipeline import Pipeline
 from mlflow.models.model import ModelInfo
-
-logger = logging.getLogger(__name__)
+from prefect import task
+from prefect.logging import get_run_logger
 
 
 class LoadedModel(TypedDict):
@@ -16,7 +15,9 @@ class LoadedModel(TypedDict):
     metrics: dict
 
 
+@task
 def save_model(model_name, run_id):
+    logger = get_run_logger()
     info = mlflow.register_model(f'runs:/{run_id}/model', model_name)
     logger.info(
         f"""Model {info.name} succesfully registered as {info.status}.
@@ -34,7 +35,9 @@ def _get_features(model_info: ModelInfo):
     return [i['name'] for i in model_info.signature.inputs.to_dict()]
 
 
+@task
 def get_model(uri) -> LoadedModel:
+    logger = get_run_logger()
     model = mlflow.sklearn.load_model(uri)
     model_info = mlflow.models.get_model_info(uri)
     if not model:

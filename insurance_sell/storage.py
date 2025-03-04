@@ -1,14 +1,13 @@
-import logging
 from typing import Optional, TypedDict
 
 import pandas as pd
 from minio import Minio, S3Error
 from minio.commonconfig import ENABLED
 from minio.versioningconfig import VersioningConfig
+from prefect import task
+from prefect.logging import get_run_logger
 
 from insurance_sell.settings import MinioSettings
-
-logger = logging.getLogger(__name__)
 
 settings = MinioSettings()  # type: ignore
 
@@ -20,7 +19,7 @@ client = Minio(
 )
 
 
-def _create_bucket_if_not_exists(bucket_name: str):
+def _create_bucket_if_not_exists(bucket_name: str, logger):
     if not client.bucket_exists(bucket_name):
         client.make_bucket(bucket_name)
         client.set_bucket_versioning(bucket_name, VersioningConfig(ENABLED))
@@ -33,8 +32,10 @@ class ObjectInfo(TypedDict):
     bucket_name: str
 
 
+@task
 def send_file_to_storage(input_file, output_file) -> ObjectInfo:
-    _create_bucket_if_not_exists(settings.BUCKET_NAME)
+    logger = get_run_logger()
+    _create_bucket_if_not_exists(settings.BUCKET_NAME, logger)
 
     try:
         client.fput_object(settings.BUCKET_NAME, output_file, input_file)
@@ -50,7 +51,9 @@ def send_file_to_storage(input_file, output_file) -> ObjectInfo:
     return {'output_file': output_file, 'bucket_name': settings.BUCKET_NAME}
 
 
+@task
 def check_if_object_exists(bucket_name, object_name):
+    logger = get_run_logger()
     try:
         objects = client.list_objects(bucket_name)
         filtered_objects = filter(
@@ -58,9 +61,11 @@ def check_if_object_exists(bucket_name, object_name):
         )
         return True if any(filtered_objects) else False
     except S3Error:
+        logger.error(f'Bucket {bucket_name} not found')
         return False
 
 
+@task
 def get_file_from_storage(
     bucket_name, file, output_file, to_df: bool = True
 ) -> Optional[pd.DataFrame]:

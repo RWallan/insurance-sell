@@ -1,15 +1,14 @@
-import logging
 from pathlib import Path
 
 import pandas as pd
 from pandera.errors import SchemaError
+from prefect import task
+from prefect.logging import get_run_logger
 
 from .schemas import RawInsuranceSell
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
-
+@task
 def extract_data(filename: Path | str, overwrite: bool = False):
     """Extract data from https://github.com/prsdm/mlops-project/tree/main and export to csv.
 
@@ -17,6 +16,7 @@ def extract_data(filename: Path | str, overwrite: bool = False):
         filename: File name to save data.
         overwrite: If True, the data extracted will overwrite existing data.
     """  # noqa: E501
+    logger = get_run_logger()
     raw_data = pd.DataFrame()
 
     fname = Path(filename)

@@ -19,7 +19,8 @@ dependencies = [
     "pydantic-settings (>=2.8.1,<3.0.0)",
     "mlflow (>=2.20.3,<3.0.0)",
     "psycopg2 (>=2.9.10,<3.0.0)",
-    "boto3 (>=1.37.5,<2.0.0)"
+    "boto3 (>=1.37.5,<2.0.0)",
+    "prefect (>=3.2.9,<4.0.0)"
 ]
 
 [project.scripts]
@@ -57,6 +58,7 @@ pre_test = "task lint"
 test = "pytest -s -x -vv --cov=insurance_sell"
 post_test = "coverage html"
 mlflow = "mlflow server --backend-store-uri postgresql://mlflow:mlflow@localhost:5432/mlflow --artifacts-destination s3://mlflow --host 0.0.0.0 --port 5000" # this is WEAK, DO NOT USE IN PRODUCTION
+prefect = "prefect server start"
 
 [tool.towncrier]
 directory = "changelog.d"

@@ -7,6 +7,7 @@ from typing import Optional
 import mlflow
 import pandas as pd
 from cyclopts import App
+from prefect import flow
 from rich.console import Console
 from rich.table import Table
 from sklearn import model_selection
@@ -27,6 +28,7 @@ mlflow.set_tracking_uri('http://localhost:5000')
 
 
 @app.command
+@flow(log_prints=True)
 def extract(overwrite: bool = False):
     """Extract data from https://github.com/prsdm/mlops-project/tree/main and export to minIO storage.
 
@@ -53,6 +55,7 @@ def extract(overwrite: bool = False):
 
 
 @app.command
+@flow(log_prints=True)
 def train(bucket_name: str, filename: str):
     """Fit model.
 
@@ -95,6 +98,7 @@ def train(bucket_name: str, filename: str):
 
 
 @app.command
+@flow(log_prints=True)
 def metrics(model: Optional[str] = None):
     if not model:
         model = 'models:/insurance-sell@production'
@@ -104,6 +108,7 @@ def metrics(model: Optional[str] = None):
 
 
 @app.command
+@flow(log_prints=True)
 def predict(
     data: dict | str | Path,
     *,
