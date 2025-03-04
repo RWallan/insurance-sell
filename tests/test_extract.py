@@ -11,7 +11,7 @@ from insurance_sell.settings import Settings
 extractor = Extractor(Settings())
 
 
-def test_fetch_data(tmp_path, monkeypatch, caplog):
+def test_fetch_data(tmp_path):
     df = pd.DataFrame(
         {
             'id': ['1', '2'],
