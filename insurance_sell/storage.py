@@ -1,25 +1,33 @@
-from typing import Optional, TypedDict
+# ruff: noqa: D102
+from typing import Iterator, Optional, Protocol, TypedDict
 
 import pandas as pd
-from minio import Minio, S3Error
+from minio import S3Error
 from minio.commonconfig import ENABLED
 from minio.versioningconfig import VersioningConfig
 from prefect import task
+from prefect.cache_policies import NONE
 from prefect.logging import get_run_logger
 
-from insurance_sell.settings import MinioSettings
 
-settings = MinioSettings()  # type: ignore
+class BucketClient(Protocol):
+    def bucket_exists(self, bucket_name: str): ...
+    def fget_object(
+        self, bucket_name: str, object_name: str, file_path: str
+    ): ...
+    def fput_object(
+        self, bucket_name: str, object_name: str, file_path: str
+    ): ...
+    def list_objects(self, bucket_name: str) -> Iterator: ...
+    def make_bucket(self, bucket_name: str): ...
+    def set_bucket_versioning(
+        self, bucket_name: str, config: VersioningConfig
+    ): ...
 
-client = Minio(
-    'localhost:9000',
-    access_key=settings.MINIO_ACCESS_KEY,
-    secret_key=settings.MINIO_SECRET_KEY,
-    secure=False,
-)
 
-
-def _create_bucket_if_not_exists(bucket_name: str, logger):
+def _create_bucket_if_not_exists(
+    client: BucketClient, bucket_name: str, logger
+):
     if not client.bucket_exists(bucket_name):
         client.make_bucket(bucket_name)
         client.set_bucket_versioning(bucket_name, VersioningConfig(ENABLED))
@@ -32,27 +40,27 @@ class ObjectInfo(TypedDict):
     bucket_name: str
 
 
-@task
-def send_file_to_storage(input_file, output_file) -> ObjectInfo:
+@task(cache_policy=NONE)
+def send_file_to_storage(
+    client: BucketClient, bucket_name, input_file, output_file
+):
     logger = get_run_logger()
-    _create_bucket_if_not_exists(settings.BUCKET_NAME, logger)
+    _create_bucket_if_not_exists(client, bucket_name, logger)
 
     try:
-        client.fput_object(settings.BUCKET_NAME, output_file, input_file)
+        client.fput_object(bucket_name, output_file, input_file)
         logger.info(
             (
                 f'{input_file} successfully uploaded as object {output_file} '
-                f'to bucket {settings.BUCKET_NAME}.'
+                f'to bucket {bucket_name}.'
             )
         )
     except S3Error as e:
         logger.error(f'Error occurred while uploading file to storage: {e}')
 
-    return {'output_file': output_file, 'bucket_name': settings.BUCKET_NAME}
-
 
 @task
-def check_if_object_exists(bucket_name, object_name):
+def check_if_object_exists(client: BucketClient, bucket_name, object_name):
     logger = get_run_logger()
     try:
         objects = client.list_objects(bucket_name)
@@ -61,13 +69,13 @@ def check_if_object_exists(bucket_name, object_name):
         )
         return True if any(filtered_objects) else False
     except S3Error:
-        logger.error(f'Bucket {bucket_name} not found')
+        logger.error(f'Bucket {object_name} not found')
         return False
 
 
-@task
+@task(cache_policy=NONE)
 def get_file_from_storage(
-    bucket_name, file, output_file, to_df: bool = True
+    client, bucket_name, file, output_file, to_df: bool = True
 ) -> Optional[pd.DataFrame]:
     obj = client.fget_object(bucket_name, file, output_file)
 
