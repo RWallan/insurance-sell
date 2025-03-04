@@ -36,7 +36,24 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  prefect_db:
+    restart: always
+    image: postgres
+    container_name: prefect_db
+    ports:
+      - 5433:5432
+    networks:
+      - backend
+    environment:
+      - POSTGRES_USER=${PREFECT_PG_USER}
+      - POSTGRES_PASSWORD=${PREFECT_PG_PASSWORD}
+      - POSTGRES_DB=${PREFECT_PG_DATABASE}
+    volumes:
+      - prefectdata:/var/lib/postgresql/data
+
+
   mlflow:
+    restart: always
     build: ./docker/mlflow
     image: mlflow_service
     container_name: mlflow_service
@@ -54,10 +71,32 @@ services:
     networks:
       - backend
       - frontend
+  
+  prefect:
+    restart: always
+    image: prefecthq/prefect:3-latest
+    container_name: prefect_service
+    ports:
+      - 4200:4200
+    environment:
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+      - PREFECT_UI_URL=http://localhost:4200/api
+      - PREFECT_API_URL=http://localhost:4200/api
+      - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://${PREFECT_PG_USER}:${PREFECT_PG_PASSWORD}@prefect_db:5432/${PREFECT_PG_DATABASE}
+    command: prefect server start
+    depends_on:
+      - prefect_db
+    volumes:
+      - prefect:/root/.prefect
+    networks:
+      - backend
+      - frontend
 
 volumes:
   minio_data:
   pgdata:
+  prefect:
+  prefectdata:
 
 networks:
   frontend:
