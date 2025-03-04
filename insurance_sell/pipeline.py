@@ -1,6 +1,9 @@
 import logging
 from typing import Optional
 
+import mlflow
+import mlflow.models
+import mlflow.sklearn
 import pandas as pd
 from feature_engine import encoding, imputation
 from feature_engine.dataframe_checks import check_X
@@ -156,6 +159,14 @@ def create_pipeline() -> list[tuple]:
         variables='Switch', arbitrary_number=-1
     )
 
+    mlflow.set_tag(
+        'preprocessing',
+        (
+            'StringCleaner, FrequentImputer, MedianImputer, MissingImputer, '
+            'OneHot, ArbitraryPositiveOne, ArbitraryNegativeOne',
+        ),
+    )
+
     return [
         ('StringCleaner', cleaner),
         ('FrequentImputer', frequent_imputer),
@@ -174,10 +185,10 @@ def configure_model() -> model_selection.GridSearchCV:
     model = ensemble.RandomForestClassifier(random_state=12)
 
     parameters = {
-        'min_samples_leaf': [10, 25, 50, 75, 100],
-        'n_estimators': [100, 200, 500, 1000],
-        'criterion': ['gini', 'entropy'],
-        'max_depth': [5, 8, 10, 12, 15],
+        'min_samples_leaf': [10, 25],
+        'n_estimators': [100],
+        'criterion': ['gini'],
+        'max_depth': [5, 10],
     }
     logger.info(f'GridSearchCV parameters: {parameters}')
 
@@ -186,11 +197,17 @@ def configure_model() -> model_selection.GridSearchCV:
     )
 
 
-def fit_model(X: pd.DataFrame, y: pd.Series):  # noqa: N803
+def get_choosed_params(model: Pipeline):
+    return model.steps[-1][1].best_params_
+
+
+def fit_model(X: pd.DataFrame, y: pd.Series, run_id):  # noqa: N803
     # Resampling before pipeline because some incompatibilities is happening
     # and I dunno how to fix it
     pipelines = create_pipeline()
     model = configure_model()
+
+    mlflow.set_tag('resampling', 'SMOTE')
     pipelines.extend(
         [
             ('smote', SMOTE(sampling_strategy=1.0, random_state=12)),  # type: ignore
@@ -200,11 +217,15 @@ def fit_model(X: pd.DataFrame, y: pd.Series):  # noqa: N803
 
     model_pipeline = Pipeline(steps=pipelines)
     model_pipeline.fit(X, y)
+    parameters = get_choosed_params(model_pipeline)
+    mlflow.log_params(parameters, run_id=run_id)
+    signature = mlflow.models.infer_signature(model_input=X, params=parameters)
+    mlflow.sklearn.log_model(model_pipeline, 'model', signature=signature)
 
     return model_pipeline
 
 
-def report_metrics(y_true, y_proba, cohort: float):
+def report_metrics(y_true, y_proba, cohort: float, prefix: str = ''):
     y_pred = (y_proba[:, 1] > cohort).astype(int)
 
     acc = metrics.accuracy_score(y_true, y_pred)
@@ -213,10 +234,10 @@ def report_metrics(y_true, y_proba, cohort: float):
     recall = metrics.recall_score(y_true, y_pred)
 
     return {
-        'Accuracy': acc,
-        'ROC AUC': auc,
-        'Precision': precision,
-        'Recall': recall,
+        f'{prefix}Accuracy': acc,
+        f'{prefix}ROC AUC': auc,
+        f'{prefix}Precision': precision,
+        f'{prefix}Recall': recall,
     }
 
 
@@ -227,12 +248,17 @@ def evalute_model(  # noqa: PLR0913
     X_test: pd.DataFrame,  # noqa: N803
     y_test: pd.Series,
     model: Pipeline,
+    run_id,
     cohort: float = 0.5,
 ):
     y_train_proba = model.predict_proba(X_train)
     y_test_proba = model.predict_proba(X_test)
 
-    train_metrics = report_metrics(y_train, y_train_proba, cohort)
-    test_metrics = report_metrics(y_test, y_test_proba, cohort)
+    train_metrics = report_metrics(
+        y_train, y_train_proba, cohort, prefix='train_'
+    )
+    mlflow.log_metrics(train_metrics, run_id=run_id)
+    test_metrics = report_metrics(y_test, y_test_proba, cohort, prefix='test_')
+    mlflow.log_metrics(test_metrics, run_id=run_id)
 
     return {'Train Metrics': train_metrics, 'Test Metrics': test_metrics}

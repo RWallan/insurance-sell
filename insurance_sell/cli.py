@@ -1,8 +1,10 @@
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import mlflow
 import pandas as pd
 from cyclopts import App
 from rich.console import Console
@@ -20,6 +22,8 @@ from insurance_sell.utils import get_model, save_model
 
 console = Console()
 app = App(version=__version__)
+
+mlflow.set_tracking_uri('http://localhost:5000')
 
 
 @app.command
@@ -73,16 +77,27 @@ def train(bucket_name: str, filename: str):
         stratify=df[pipeline.TARGET],
     )
 
-    model = pipeline.fit_model(X_train, y_train)  # type: ignore
-    metrics = pipeline.evalute_model(X_train, y_train, X_test, y_test, model)  # type: ignore
+    with mlflow.start_run(run_name=f'run_{datetime.now()}') as run:
+        mlflow.set_tag('developer', 'RWallan')
+        model = pipeline.fit_model(X_train, y_train, run.info.run_id)  # type: ignore
+        pipeline.evalute_model(
+            X_train,  # type: ignore
+            y_train,  # type: ignore
+            X_test,  # type: ignore
+            y_test,  # type: ignore
+            model,
+            run.info.run_id,
+        )
 
-    saved_model = save_model(output_path, model, metrics, pipeline.FEATURES)
+        saved_model = save_model('insurance-sell', run.info.run_id)
 
-    console.print(f'Saved model at: {saved_model}')
+    console.print(f'Saved model: {saved_model}')
 
 
 @app.command
 def metrics(model: Optional[str] = None):
+    if not model:
+        model = 'models:/insurance-sell@production'
     loaded_model = get_model(model)
 
     console.print(loaded_model['metrics'])
@@ -96,6 +111,8 @@ def predict(
     output_path: Optional[str | Path] = None,
     cohort: float = 0.5,
 ):
+    if not model:
+        model = 'models:/insurance-sell@production'
     if isinstance(data, dict):
         data_ = pd.DataFrame(data)
     else:
