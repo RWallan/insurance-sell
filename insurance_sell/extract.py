@@ -82,9 +82,9 @@ class Extractor:
                 df = pd.concat([df, self._raw_data])
                 df.to_csv(input_file, index=False)
             else:
-                _logger.error(
+                _logger.info(
                     (
-                        f'Error to load {output_file} '
+                        f'Nothing to load {output_file} '
                         f'from {bucket_name}. Overwriting...'
                     )
                 )

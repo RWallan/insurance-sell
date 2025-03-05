@@ -195,7 +195,7 @@ def test_persist_in_storage_must_overwrite_if_dont_have_past_object(
         mock_get_file_from_storage,
     )
 
-    with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.INFO):
         with disable_run_logger():
             extractor._persist_in_storage.fn(
                 extractor,
@@ -208,5 +208,7 @@ def test_persist_in_storage_must_overwrite_if_dont_have_past_object(
 
     result_df = pd.read_csv(tmp_path / 'test.csv')
 
-    assert 'Error to load output.csv from test. Overwriting...' in caplog.text
+    assert (
+        'Nothing to load output.csv from test. Overwriting...' in caplog.text
+    )
     testing.assert_frame_equal(result_df, df)
