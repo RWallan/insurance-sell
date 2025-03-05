@@ -38,6 +38,10 @@ towncrier = "^24.8.0"
 httpx = "^0.28.1"
 freezegun = "^1.5.1"
 
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = '-p no:warnings'
+
 [tool.ruff]
 line-length = 79
 

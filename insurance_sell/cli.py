@@ -7,6 +7,7 @@ from typing import Optional
 import mlflow
 import pandas as pd
 from cyclopts import App
+from minio import Minio
 from prefect import flow
 from rich.console import Console
 from rich.table import Table
@@ -14,6 +15,7 @@ from sklearn import model_selection
 
 from insurance_sell import __version__, pipeline
 from insurance_sell.extract import extract_data
+from insurance_sell.settings import MinioSettings, Settings
 from insurance_sell.storage import (
     check_if_object_exists,
     get_file_from_storage,
@@ -23,7 +25,12 @@ from insurance_sell.utils import get_model, save_model
 
 console = Console()
 app = App(version=__version__)
-
+client = Minio(
+    MinioSettings().MINIO_ENDPOINT,  # type: ignore
+    access_key=MinioSettings().MINIO_ACCESS_KEY,  # type: ignore
+    secret_key=MinioSettings().MINIO_SECRET_KEY,  # type: ignore
+    secure=False,
+)
 mlflow.set_tracking_uri('http://localhost:5000')
 
 
@@ -37,19 +44,25 @@ def extract(overwrite: bool = False):
     """  # noqa: E501
     has_object = False
     if not overwrite:
-        has_object = check_if_object_exists('raw', 'raw.csv')
+        has_object = check_if_object_exists(
+            client, Settings().DATA_SOURCES_BUCKET, 'raw.csv'
+        )
     overwrite_ = False if has_object and not overwrite else True
 
     with tempfile.NamedTemporaryFile(suffix='.csv') as f:
         if not overwrite_:
-            get_file_from_storage('raw', 'raw.csv', f.name)
+            get_file_from_storage(
+                client, Settings().DATA_SOURCES_BUCKET, 'raw.csv', f.name
+            )
         fname = extract_data(f.name, overwrite_)
-        info = send_file_to_storage(fname, 'raw.csv')
+        send_file_to_storage(
+            client, Settings().DATA_SOURCES_BUCKET, fname, 'raw.csv'
+        )
 
     console.print(
         (
-            f'{info["output_file"]} successfully uploaded as object '
-            f'to bucket {info["bucket_name"]}.'
+            f'File successfully uploaded as object '
+            f'to bucket {Settings().DATA_SOURCES_BUCKET}.'
         )
     )
 
@@ -67,7 +80,9 @@ def train(bucket_name: str, filename: str):
     output_path.mkdir(exist_ok=True, parents=True)
 
     with tempfile.NamedTemporaryFile(suffix='.csv') as f:
-        df = get_file_from_storage(bucket_name, filename, f.name, to_df=True)
+        df = get_file_from_storage(
+            client, bucket_name, filename, f.name, to_df=True
+        )
     if not isinstance(df, pd.DataFrame):
         console.print('Something went wrong while downloading data.')
         sys.exit(1)
