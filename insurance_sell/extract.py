@@ -61,7 +61,12 @@ class Extractor:
         except SchemaError as exc:
             _logger.error(f'Failed to validate data schema. {exc}')
 
-    @task(name='persist-in-storage', tags=TAGS)
+    @task(
+        name='persist-in-storage',
+        tags=TAGS,
+        cache_key_fn=lambda context,
+        parameters: f'{parameters["bucket_name"]}-{parameters["input_file"]}-{parameters["output_file"]}-{parameters["overwrite"]}',  # noqa: E501
+    )
     def _persist_in_storage(
         self,
         client: BucketClient,
@@ -147,6 +152,7 @@ class Extractor:
 
         has_object = False
         if persist_in_storage:
+            bucket_name = bucket_name or self._settings.DATA_SOURCES_BUCKET
             if bucket_name and client:
                 # Check if can append in existing file
                 if not overwrite:
@@ -165,7 +171,7 @@ class Extractor:
                 # Create a temporary file to save in storage
                 with tempfile.NamedTemporaryFile(suffix='.csv') as f:
                     wait(futures)
-                    self._persist_in_storage.submit(  # type: ignore
+                    self._persist_in_storage(
                         client,
                         bucket_name,
                         f.name,
@@ -180,7 +186,7 @@ class Extractor:
                     )
                 )
                 wait(futures)
-                self._persist_in_local.submit(output_file, overwrite)  # type: ignore
+                self._persist_in_local(output_file, overwrite)
         else:
             wait(futures)
-            self._persist_in_local.submit(output_file, overwrite)  # type: ignore
+            self._persist_in_local(output_file, overwrite)

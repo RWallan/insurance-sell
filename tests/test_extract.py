@@ -427,7 +427,6 @@ def test_extract_flow_must_overwrite_file_and_save_local_if_bucket_vars_not_prov
     with caplog.at_level(logging.WARNING):
         extractor.extract(
             tmp_path / 'output.csv',
-            client=client,
             overwrite=False,
         )
 
