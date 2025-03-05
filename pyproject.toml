@@ -59,7 +59,7 @@ quote-style = "single"
 lint = "ruff check .; ruff check . --diff"
 format = "ruff check . --fix; ruff format ."
 pre_test = "task lint"
-test = "pytest -s -x -vv --cov=insurance_sell"
+test = "pytest -x -vv --cov=insurance_sell"
 post_test = "coverage html"
 prefect = "prefect server start"
 

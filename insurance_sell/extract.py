@@ -94,9 +94,23 @@ class Extractor:
 
         send_file_to_storage(client, bucket_name, input_file, output_file)
 
+    @task(name='persist-in-local', tags=TAGS)
+    def _persist_in_local(self, output_file: str, overwrite: bool):
+        """Persist a file in local verifying if overwrite or not."""
+        _logger = get_run_logger()
+
+        if not overwrite:
+            _logger.warning('Tried to append if no local file found')
+            overwrite = True if Path(output_file).exists() else False
+
+        self._raw_data.to_csv(
+            output_file, index=False, mode='w' if overwrite else 'a'
+        )
+        _logger.info(f'Saved {output_file}')
+
     @flow(
         name='extract-data-and-persists',
-        task_runner=ThreadPoolTaskRunner(max_workers=2),
+        task_runner=ThreadPoolTaskRunner(max_workers=2),  # type: ignore
     )
     def extract(  # noqa: PLR0913
         self,
@@ -129,9 +143,7 @@ class Extractor:
         sources = sources or self._settings.DATA_SOURCES
         for source in sources:
             _logger.info(f'Extracting data for {source.split("/")[-1]}')
-            futures.append(self.fetch_data.submit(source))
-
-        wait(futures)  # wait for the sequence of futures to complete
+            futures.append(self.fetch_data.submit(source))  # type: ignore
 
         has_object = False
         if persist_in_storage:
@@ -139,26 +151,27 @@ class Extractor:
                 # Check if can append in existing file
                 if not overwrite:
                     has_object = check_if_object_exists(
-                        client, 'raw', 'raw.csv'
+                        client, bucket_name, output_file
                     )
-                if not has_object:
-                    _logger.warning(
-                        (
-                            f'{output_file} not found in {bucket_name}. '
-                            'Overwriting'
+                    if not has_object:
+                        _logger.warning(
+                            (
+                                f'{output_file} not found in {bucket_name}. '
+                                'Overwriting'
+                            )
                         )
-                    )
-                    overwrite = True
+                        overwrite = True
 
                 # Create a temporary file to save in storage
                 with tempfile.NamedTemporaryFile(suffix='.csv') as f:
-                    self._persist_in_storage(
+                    wait(futures)
+                    self._persist_in_storage.submit(  # type: ignore
                         client,
                         bucket_name,
                         f.name,
                         output_file,
                         overwrite=overwrite,
-                    ).submit()
+                    )
             else:
                 _logger.warning(
                     (
@@ -166,6 +179,8 @@ class Extractor:
                         'client provided. Trying to save locally'
                     )
                 )
-                self._raw_data.to_csv(output_file, index=False)
+                wait(futures)
+                self._persist_in_local.submit(output_file, overwrite)  # type: ignore
         else:
-            self._raw_data.to_csv(output_file, index=False)
+            wait(futures)
+            self._persist_in_local.submit(output_file, overwrite)  # type: ignore
