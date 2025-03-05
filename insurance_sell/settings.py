@@ -17,3 +17,4 @@ class Settings(BaseSettings):
         'https://raw.githubusercontent.com/prsdm/mlops-project/refs/heads/main/data/test.csv',
     ]
     DATA_SOURCES_BUCKET: str = 'raw'
+    OUTPUT_DATA_BUCKET: str = 'raw.csv'

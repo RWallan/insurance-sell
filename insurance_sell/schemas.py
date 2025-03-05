@@ -7,7 +7,7 @@ FlagField = partial(pa.Field, ge=0, le=1)
 
 
 class RawInsuranceSell(pa.DataFrameModel):
-    id: pt.Series[str] = pa.Field(unique=True, coerce=True)
+    id: pt.Series[int] = pa.Field(unique=True, coerce=True)
     Gender: pt.Series[str] = pa.Field(nullable=True)
     Age: pt.Series[float] = pa.Field(nullable=True)
     HasDrivingLicense: pt.Series[float] = FlagField(nullable=True)
@@ -16,7 +16,7 @@ class RawInsuranceSell(pa.DataFrameModel):
     VehicleAge: pt.Series[str] = pa.Field(nullable=True)
     PastAccident: pt.Series[str] = pa.Field(nullable=True)
     AnnualPremium: pt.Series[str]
-    SalesChannelID: pt.Series[str] = pa.Field(coerce=True)
+    SalesChannelID: pt.Series[int] = pa.Field(coerce=True)
     DaysSinceCreated: pt.Series[int] = pa.Field(coerce=True)
     Result: pt.Series[int] = pa.Field(coerce=True)
 

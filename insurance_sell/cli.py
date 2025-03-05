@@ -14,12 +14,10 @@ from rich.table import Table
 from sklearn import model_selection
 
 from insurance_sell import __version__, pipeline
-from insurance_sell.extract import extract_data
+from insurance_sell.extract import Extractor
 from insurance_sell.settings import MinioSettings, Settings
 from insurance_sell.storage import (
-    check_if_object_exists,
     get_file_from_storage,
-    send_file_to_storage,
 )
 from insurance_sell.utils import get_model, save_model
 
@@ -35,34 +33,24 @@ mlflow.set_tracking_uri('http://localhost:5000')
 
 
 @app.command
-@flow(log_prints=True)
-def extract(overwrite: bool = False):
+def extract(*, overwrite: bool = False):
     """Extract data from https://github.com/prsdm/mlops-project/tree/main and export to minIO storage.
 
     Args:
         overwrite: If True, the data extracted will overwrite existing data.
     """  # noqa: E501
-    has_object = False
-    if not overwrite:
-        has_object = check_if_object_exists(
-            client, Settings().DATA_SOURCES_BUCKET, 'raw.csv'
-        )
-    overwrite_ = False if has_object and not overwrite else True
+    extractor = Extractor(Settings())
 
-    with tempfile.NamedTemporaryFile(suffix='.csv') as f:
-        if not overwrite_:
-            get_file_from_storage(
-                client, Settings().DATA_SOURCES_BUCKET, 'raw.csv', f.name
-            )
-        fname = extract_data(f.name, overwrite_)
-        send_file_to_storage(
-            client, Settings().DATA_SOURCES_BUCKET, fname, 'raw.csv'
-        )
+    extractor.extract(
+        Settings().OUTPUT_DATA_BUCKET,
+        client=client,
+        overwrite=overwrite,
+    )
 
     console.print(
         (
-            f'File successfully uploaded as object '
-            f'to bucket {Settings().DATA_SOURCES_BUCKET}.'
+            f'File {Settings().OUTPUT_DATA_BUCKET} is being uploaded as object'
+            f' to bucket {Settings().DATA_SOURCES_BUCKET}.'
         )
     )
 
