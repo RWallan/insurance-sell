@@ -61,7 +61,7 @@ format = "ruff check . --fix; ruff format ."
 pre_test = "task lint"
 test = "pytest -x -vv --cov=insurance_sell"
 post_test = "coverage html"
-prefect = "prefect server start"
+up = "docker compose --env-file .env up -d"
 
 [tool.towncrier]
 directory = "changelog.d"
