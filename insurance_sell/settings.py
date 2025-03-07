@@ -8,7 +8,8 @@ from pydantic_settings import (
     SettingsConfigDict,
     TomlConfigSettingsSource,
 )
-from sklearn.base import ClassifierMixin, MetaEstimatorMixin, TransformerMixin
+from sklearn.base import ClassifierMixin, TransformerMixin
+from sklearn.model_selection._search import BaseSearchCV
 
 
 class MinioSettings(BaseSettings):
@@ -31,10 +32,11 @@ class Settings(BaseSettings):
 
 
 class ModelSelectionParams(BaseModel):
-    model_selection: Type[MetaEstimatorMixin]
+    name: str
+    model: Type[BaseSearchCV]
     params: dict
 
-    @field_validator('model_selection', mode='before')
+    @field_validator('model', mode='before')
     @classmethod
     def validate_model_selection_class(cls, v):
         """Validate if is a valid scikitlearn model selection."""
