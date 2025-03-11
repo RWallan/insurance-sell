@@ -13,6 +13,5 @@ def test_init_pipelines(test_model_settings):
 def test_init_model(test_model_settings):
     trainer = Trainer(test_model_settings)
 
-    assert isinstance(
-        trainer._model, test_model_settings.model_selection.model
+    assert isinstance(trainer.model, test_model_settings.model_selection.model)
     )

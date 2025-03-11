@@ -13,13 +13,13 @@ TAGS = ['modeling', 'fit']
 
 class Trainer:
     _transformers: list[tuple] = []
-    _model: ClassifierMixin | BaseSearchCV
+    model: ClassifierMixin | BaseSearchCV
 
     def __init__(self, settings: ModelSettings):
         """Class to handle fit pipeline."""
         self._settings = settings
         self._transformers = self.create_pipeline()  # type: ignore
-        self._model = self.configure_model()  # type: ignore
+        self.model = self.configure_model()  # type: ignore
 
     @task(name='create-pipeline', tags=TAGS)
     def create_pipeline(self) -> list[tuple[str, Type[TransformerMixin]]]:
