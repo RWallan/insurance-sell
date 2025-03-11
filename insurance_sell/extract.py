@@ -10,8 +10,8 @@ from prefect.logging import get_run_logger
 from prefect.task_runners import ThreadPoolTaskRunner
 from prefect.tasks import exponential_backoff
 
-from insurance_sell.settings import Settings
-from insurance_sell.storage import (
+from insurance_sell.helpers.settings import Settings
+from insurance_sell.helpers.storage import (
     BucketClient,
     check_if_object_exists,
     get_file_from_storage,

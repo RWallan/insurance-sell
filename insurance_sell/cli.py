@@ -15,12 +15,16 @@ from sklearn import model_selection
 
 from insurance_sell import __version__
 from insurance_sell.extract import Extractor
-from insurance_sell.modeling.train import Trainer
-from insurance_sell.settings import MinioSettings, ModelSettings, Settings
-from insurance_sell.storage import (
+from insurance_sell.helpers.settings import (
+    MinioSettings,
+    ModelSettings,
+    Settings,
+)
+from insurance_sell.helpers.storage import (
     get_file_from_storage,
 )
-from insurance_sell.utils import get_model, save_model
+from insurance_sell.helpers.utils import get_model, save_model
+from insurance_sell.modeling.train import Trainer
 
 console = Console()
 client = Minio(

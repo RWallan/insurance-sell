@@ -12,7 +12,7 @@ from sklearn import metrics
 from sklearn.base import ClassifierMixin
 from sklearn.model_selection._search import BaseSearchCV
 
-from insurance_sell.settings import ModelSettings
+from insurance_sell.helpers.settings import ModelSettings
 
 TAGS = ['modeling', 'fit']
 

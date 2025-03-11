@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from prefect.logging.loggers import disable_run_logger
 
 from insurance_sell.modeling.train import Trainer
 from insurance_sell.modeling.transformers import StringCleaner
@@ -7,6 +8,8 @@ from insurance_sell.modeling.transformers import StringCleaner
 
 def test_init_pipelines(test_model_settings):
     trainer = Trainer(test_model_settings, '1234')
+    with disable_run_logger():
+        trainer.create_pipeline.fn(trainer)
 
     assert len(trainer._transformers) == 1
     assert trainer._transformers[0][0] == 'StringCleaner'
@@ -15,6 +18,8 @@ def test_init_pipelines(test_model_settings):
 
 def test_init_model(test_model_settings):
     trainer = Trainer(test_model_settings, '1234')
+    with disable_run_logger():
+        trainer.configure_model.fn(trainer)
 
     assert isinstance(
         trainer._model, test_model_settings.model_selection.model

@@ -7,7 +7,7 @@ from pandas import testing
 from prefect.logging.loggers import disable_run_logger
 
 from insurance_sell.extract import Extractor
-from insurance_sell.settings import Settings
+from insurance_sell.helpers.settings import Settings
 
 
 def test_fetch_data(tmp_path):

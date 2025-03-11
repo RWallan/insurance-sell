@@ -1,8 +1,8 @@
 import pandas as pd
 from prefect.logging.loggers import disable_run_logger
 
-from insurance_sell.settings import MinioSettings
-from insurance_sell.storage import (
+from insurance_sell.helpers.settings import MinioSettings
+from insurance_sell.helpers.storage import (
     check_if_object_exists,
     get_file_from_storage,
     send_file_to_storage,

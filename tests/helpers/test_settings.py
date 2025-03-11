@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pydantic_settings import SettingsConfigDict
 
-from insurance_sell.settings import (
+from insurance_sell.helpers.settings import (
     ModelParams,
     ModelSelectionParams,
     ModelSettings,
@@ -14,7 +14,7 @@ from insurance_sell.settings import (
 def test_model_settings_must_return_valid_model(monkeypatch):
     TEST_CONFIG_FILE = str(Path().cwd() / 'tests' / 'test_model_config.toml')
     monkeypatch.setattr(
-        'insurance_sell.settings.ModelSettings.model_config',
+        'insurance_sell.helpers.settings.ModelSettings.model_config',
         SettingsConfigDict(toml_file=TEST_CONFIG_FILE),
     )
     settings = ModelSettings()  # type: ignore
