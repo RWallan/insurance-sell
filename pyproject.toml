@@ -47,7 +47,7 @@ line-length = 79
 
 [tool.ruff.lint]
 select = ["I", "N", "F", "E", "W", "D", "PL", "PT"]
-ignore = ["D100", "D101", "D103", "D104", "D203", "D213", "N806"]
+ignore = ["D100", "D101", "D103", "D104", "D203", "D213", "N806", "N803"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -61,7 +61,7 @@ format = "ruff check . --fix; ruff format ."
 pre_test = "task lint"
 test = "pytest -x -vv --cov=insurance_sell"
 post_test = "coverage html"
-prefect = "prefect server start"
+up = "docker compose --env-file .env up -d"
 
 [tool.towncrier]
 directory = "changelog.d"

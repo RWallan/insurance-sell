@@ -1,0 +1,60 @@
+features = [
+    "Gender",
+    "Age",
+    "HasDrivingLicense",
+    "Switch",
+    "VehicleAge",
+    "PastAccident",
+    "AnnualPremium",
+]
+target = "Result"
+
+[model]
+name = "RandomForestClassifier"
+model = "sklearn.ensemble.RandomForestClassifier"
+params = {random_state = 12}
+
+[model_selection]
+name = "GridSearchCV"
+model = "sklearn.model_selection.GridSearchCV"
+params = {cv=3, n_jobs=-2, verbose=3, param_grid={"min_samples_leaf"= [10, 25], "n_estimators"= [100], "criterion"=["gini"], "max_depth"=[5, 10]}}
+
+[resampler]
+name = "SMOTE"
+resampler = "imblearn.over_sampling.SMOTE"
+params = {sampling_strategy=1.0, random_state=12}
+
+[[pipeline]]
+name = "StringCleaner"
+transformer = "insurance_sell.modeling.transformers.StringCleaner"
+params = {variables="AnnualPremium", pattern_replace={"£"="", ","=""}}
+
+[[pipeline]]
+name = "FrequentImputer"
+transformer = "feature_engine.imputation.CategoricalImputer"
+params = {variables=["Gender", "VehicleAge"], imputation_method="frequent"}
+
+[[pipeline]]
+name = "MedianImputer"
+transformer = "feature_engine.imputation.MeanMedianImputer"
+params = {variables="Age", imputation_method="median"}
+
+[[pipeline]]
+name = "MissingImputer"
+transformer = "feature_engine.imputation.CategoricalImputer"
+params = {variables="PastAccident", imputation_method="missing", fill_value="Unknown"}
+
+[[pipeline]]
+name = "OneHot"
+transformer = "feature_engine.encoding.OneHotEncoder"
+params = {variables=["PastAccident", "Gender", "VehicleAge"], drop_last=true}
+
+[[pipeline]]
+name = "ArbitraryPositiveOne"
+transformer = "feature_engine.imputation.ArbitraryNumberImputer"
+params = {variables="HasDrivingLicense", arbitrary_number=1}
+
+[[pipeline]]
+name = "ArbitraryNegativeOne"
+transformer = "feature_engine.imputation.ArbitraryNumberImputer"
+params = {variables="Switch", arbitrary_number=-1}
