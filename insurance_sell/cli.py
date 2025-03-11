@@ -13,16 +13,16 @@ from rich.console import Console
 from rich.table import Table
 from sklearn import model_selection
 
-from insurance_sell import __version__, pipeline
+from insurance_sell import __version__
 from insurance_sell.extract import Extractor
-from insurance_sell.settings import MinioSettings, Settings
+from insurance_sell.modeling.train import Trainer
+from insurance_sell.settings import MinioSettings, ModelSettings, Settings
 from insurance_sell.storage import (
     get_file_from_storage,
 )
 from insurance_sell.utils import get_model, save_model
 
 console = Console()
-app = App(version=__version__)
 client = Minio(
     MinioSettings().MINIO_ENDPOINT,  # type: ignore
     access_key=MinioSettings().MINIO_ACCESS_KEY,  # type: ignore
@@ -30,6 +30,8 @@ client = Minio(
     secure=False,
 )
 mlflow.set_tracking_uri('http://localhost:5000')
+
+app = App(version=__version__)
 
 
 @app.command
@@ -56,17 +58,14 @@ def extract(*, overwrite: bool = False):
 
 
 @app.command
-@flow(log_prints=True)
-def train(bucket_name: str, filename: str):
+def fit(bucket_name: str, filename: str, random_state: int = 12):
     """Fit model.
 
     Args:
         bucket_name: Name of minIO bucket.
         filename: Filename of minIO object.
+        random_state: Random seed to split data into train and test.
     """
-    output_path = Path().cwd() / 'model'
-    output_path.mkdir(exist_ok=True, parents=True)
-
     with tempfile.NamedTemporaryFile(suffix='.csv') as f:
         df = get_file_from_storage(
             client, bucket_name, filename, f.name, to_df=True
@@ -76,23 +75,22 @@ def train(bucket_name: str, filename: str):
         sys.exit(1)
 
     X_train, X_test, y_train, y_test = model_selection.train_test_split(
-        df[pipeline.FEATURES],
-        df[pipeline.TARGET],
-        random_state=12,
+        df[ModelSettings().features],  # type: ignore
+        df[ModelSettings().target],  # type: ignore
+        random_state=random_state,
         train_size=0.8,
-        stratify=df[pipeline.TARGET],
+        stratify=df[ModelSettings().target],  # type: ignore
     )
 
     with mlflow.start_run(run_name=f'run_{datetime.now()}') as run:
+        trainer = Trainer(ModelSettings(), run.info.run_id)  # type: ignore
         mlflow.set_tag('developer', 'RWallan')
-        model = pipeline.fit_model(X_train, y_train, run.info.run_id)  # type: ignore
-        pipeline.evalute_model(
+        trainer.fit(
             X_train,  # type: ignore
             y_train,  # type: ignore
-            X_test,  # type: ignore
-            y_test,  # type: ignore
-            model,
-            run.info.run_id,
+            True,
+            X_test=X_test,  # type: ignore
+            y_test=y_test,  # type: ignore
         )
 
         saved_model = save_model('insurance-sell', run.info.run_id)

@@ -47,7 +47,7 @@ line-length = 79
 
 [tool.ruff.lint]
 select = ["I", "N", "F", "E", "W", "D", "PL", "PT"]
-ignore = ["D100", "D101", "D103", "D104", "D203", "D213", "N806"]
+ignore = ["D100", "D101", "D103", "D104", "D203", "D213", "N806", "N803"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
