@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional
 
 import mlflow
 import mlflow.models
@@ -6,9 +6,10 @@ import numpy as np
 import pandas as pd
 from imblearn.pipeline import Pipeline
 from prefect import flow, task
+from prefect.futures import wait
 from prefect.logging import get_run_logger
 from sklearn import metrics
-from sklearn.base import ClassifierMixin, TransformerMixin
+from sklearn.base import ClassifierMixin
 from sklearn.model_selection._search import BaseSearchCV
 
 from insurance_sell.settings import ModelSettings
@@ -29,12 +30,10 @@ class Trainer:
             run_id: MlFlow run id
         """
         self._settings = settings
-        self._transformers = self.create_pipeline()  # type: ignore
-        self._model = self.configure_model()  # type: ignore
         self.run_id = run_id
 
     @task(name='create-pipeline', tags=TAGS)
-    def create_pipeline(self) -> list[tuple[str, Type[TransformerMixin]]]:
+    def create_pipeline(self):
         """Create transform Pipeline."""
         _logger = get_run_logger()
 
@@ -51,7 +50,7 @@ class Trainer:
             )
             mlflow.set_tag('preprocessing', transformer.name)
 
-        return transformers
+        self._transformers = transformers
 
     @task(name='configure-model', tags=TAGS)
     def configure_model(
@@ -84,7 +83,7 @@ class Trainer:
             )
         )
 
-        return self._settings.model_selection.model(
+        self._model = self._settings.model_selection.model(
             model,  # type: ignore
             grid_params,  # type: ignore
             **first_level_params,
@@ -172,7 +171,7 @@ class Trainer:
         """Get the choosed model params."""
         return self.model.steps[-1][1].best_params_
 
-    @flow(name='fit-model-and-evaluate')
+    @flow(name='fit-model-and-evaluate', log_prints=True)
     def fit(
         self,
         X_train: pd.DataFrame | np.ndarray,
@@ -192,7 +191,12 @@ class Trainer:
             y_test: Test target. Needed if evaluate is True
         """
         _logger = get_run_logger()
+        futures = []
+        futures.append(self.create_pipeline.submit())  # type: ignore
+        futures.append(self.configure_model.submit())  # type: ignore
+
         _logger.info('Fitting model...')
+        wait(futures)
         steps = self._transformers.copy()
 
         if self._settings.resampler:
