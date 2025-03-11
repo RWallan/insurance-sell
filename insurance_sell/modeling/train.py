@@ -207,7 +207,6 @@ class Trainer:
             steps.extend([('model', self._model)])
         # TODO: Mock to run tests
         self.model = Pipeline(steps=steps)
-        breakpoint()
         self.model.fit(X_train, y_train)
 
         choosed_parameters = self.get_choosed_params()
