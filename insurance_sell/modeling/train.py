@@ -3,6 +3,7 @@ from typing import Type
 import mlflow
 from prefect import task
 from prefect.logging import get_run_logger
+from sklearn import metrics
 from sklearn.base import ClassifierMixin, TransformerMixin
 from sklearn.model_selection._search import BaseSearchCV
 
@@ -14,6 +15,7 @@ TAGS = ['modeling', 'fit']
 class Trainer:
     _transformers: list[tuple] = []
     model: ClassifierMixin | BaseSearchCV
+    _model_metrics: dict
 
     def __init__(self, settings: ModelSettings):
         """Class to handle fit pipeline."""
@@ -75,3 +77,37 @@ class Trainer:
             grid_params,  # type: ignore
             **first_level_params,
         )
+
+    def report_metrics(
+        self,
+        y_true: pd.Series | np.ndarray,
+        y_proba: pd.Series | np.ndarray,
+        cohort: float,
+        prefix: str = '',
+    ):
+        """Generate metrics for model.
+
+        The metrics are:
+            - Accuracy
+            - AUC
+            - Precision
+            - Recall
+
+        Args:
+            y_true: Array with the true target classes
+            y_proba: Array with the probability predicted
+            cohort: Cohort to classify the class
+            prefix: Metric prefix
+        """
+        y_pred = (y_proba[:, 1] > cohort).astype(int)
+        acc = metrics.accuracy_score(y_true, y_pred)
+        auc = metrics.roc_auc_score(y_true, y_pred)
+        precision = metrics.precision_score(y_true, y_pred)
+        recall = metrics.recall_score(y_true, y_pred)
+
+        return {
+            f'{prefix}Accuracy': acc,
+            f'{prefix}ROC AUC': auc,
+            f'{prefix}Precision': precision,
+            f'{prefix}Recall': recall,
+        }

@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 from insurance_sell.modeling.train import Trainer
 from insurance_sell.modeling.transformers import StringCleaner
 
@@ -14,4 +17,18 @@ def test_init_model(test_model_settings):
     trainer = Trainer(test_model_settings)
 
     assert isinstance(trainer.model, test_model_settings.model_selection.model)
+
+
+def test_report_metrics(test_model_settings):
+    trainer = Trainer(test_model_settings)
+    y_true = pd.Series([1, 0, 0, 1, 1, 0])
+    y_proba = np.array(
+        [[0.3, 0.7], [0.6, 0.4], [0.8, 0.2], [0.2, 0.8], [0, 1], [1, 0]]
     )
+    metrics = trainer.report_metrics(y_true, y_proba, cohort=0.5)
+    assert metrics == {
+        'Accuracy': 1.0,
+        'ROC AUC': np.float64(1.0),
+        'Precision': 1.0,
+        'Recall': 1.0,
+    }
