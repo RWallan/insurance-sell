@@ -24,6 +24,7 @@ from insurance_sell.helpers.storage import (
     get_file_from_storage,
 )
 from insurance_sell.helpers.utils import get_model, save_model
+from insurance_sell.modeling.monitoring import Monitor
 from insurance_sell.modeling.train import Trainer
 
 console = Console()
@@ -72,7 +73,7 @@ def fit(bucket_name: str, filename: str, random_state: int = 12):
     """
     with tempfile.NamedTemporaryFile(suffix='.csv') as f:
         df = get_file_from_storage(
-            client, bucket_name, filename, f.name, to_df=True
+            client, bucket_name, f.name, file=filename, to_df=True
         )
     if not isinstance(df, pd.DataFrame):
         console.print('Something went wrong while downloading data.')
@@ -151,3 +152,12 @@ def predict(
         )
 
     console.print(table)
+
+
+@app.command
+def drift(model: Optional[str | Path] = None):
+    if not model:
+        model = 'models:/insurance-sell@production'
+
+    monitor = Monitor(model, client, ModelSettings())  # type: ignore
+    monitor.generate()  # type: ignore

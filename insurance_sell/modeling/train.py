@@ -1,4 +1,4 @@
-from typing import Optional
+import tempfile
 
 import mlflow
 import mlflow.models
@@ -13,6 +13,7 @@ from sklearn.base import ClassifierMixin
 from sklearn.model_selection._search import BaseSearchCV
 
 from insurance_sell.helpers.settings import ModelSettings
+from insurance_sell.helpers.storage import BucketClient, send_file_to_storage
 
 TAGS = ['modeling', 'fit']
 
@@ -22,15 +23,17 @@ class Trainer:
     _model: ClassifierMixin | BaseSearchCV
     _model_metrics: dict
 
-    def __init__(self, settings: ModelSettings, run_id):
+    def __init__(self, settings: ModelSettings, run_id, client: BucketClient):
         """Class to handle fit pipeline.
 
         Args:
             settings: Model settings
             run_id: MlFlow run id
+            client: Bucket client
         """
         self._settings = settings
         self.run_id = run_id
+        self._client = client
 
     @task(name='create-pipeline', tags=TAGS)
     def create_pipeline(self):
@@ -171,15 +174,25 @@ class Trainer:
         """Get the choosed model params."""
         return self.model.steps[-1][1].best_params_
 
+    @task(name='send-fit-data-to-storage', tags=TAGS)
+    def _send_fit_data_to_storage(self, X, y, output_name):
+        with tempfile.NamedTemporaryFile(suffix='.csv') as f:
+            _temp = pd.concat(
+                [X, pd.DataFrame({self._settings.target: y})], axis=1
+            )
+            _temp.to_csv(f.name, index=False)
+            send_file_to_storage(
+                self._client, self._settings.bucket_name, f.name, output_name
+            )
+
     @flow(name='fit-model-and-evaluate', log_prints=True)
     def fit(
         self,
-        X_train: pd.DataFrame | np.ndarray,
-        y_train: pd.Series | np.ndarray,
-        evaluate: bool = True,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
         *,
-        X_test: Optional[pd.DataFrame | np.ndarray] = None,
-        y_test: Optional[pd.Series | np.ndarray] = None,
+        X_test: pd.DataFrame,
+        y_test: np.ndarray,
     ):
         """Fit the model.
 
@@ -191,12 +204,23 @@ class Trainer:
             y_test: Test target. Needed if evaluate is True
         """
         _logger = get_run_logger()
-        futures = []
-        futures.append(self.create_pipeline.submit())  # type: ignore
-        futures.append(self.configure_model.submit())  # type: ignore
+        storage_futures = []
+        storage_futures.append(
+            self._send_fit_data_to_storage.submit(  # type: ignore
+                X_train, y_train, f'train_{self.run_id}.csv'
+            )
+        )
+        storage_futures.append(
+            self._send_fit_data_to_storage.submit(  # type: ignore
+                X_test, y_test, f'test_{self.run_id}.csv'
+            )
+        )
+        model_futures = []
+        model_futures.append(self.create_pipeline.submit())  # type: ignore
+        model_futures.append(self.configure_model.submit())  # type: ignore
 
         _logger.info('Fitting model...')
-        wait(futures)
+        wait(model_futures)
         steps = self._transformers.copy()
 
         if self._settings.resampler:
@@ -221,6 +245,6 @@ class Trainer:
         )
         mlflow.sklearn.log_model(self.model, 'model', signature=signature)
 
-        if evaluate:
-            _logger.info('Evaluating model...')
-            self.evalute_model(X_train, y_train, X_test, y_test)
+        _logger.info('Evaluating model...')
+        self.evalute_model(X_train, y_train, X_test, y_test)
+        wait(storage_futures)

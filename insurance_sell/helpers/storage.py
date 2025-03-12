@@ -18,7 +18,9 @@ class BucketClient(Protocol):
     def fput_object(
         self, bucket_name: str, object_name: str, file_path: str
     ): ...
-    def list_objects(self, bucket_name: str) -> Iterator: ...
+    def list_objects(
+        self, bucket_name: str, prefix: Optional[str] = None
+    ) -> Iterator: ...
     def make_bucket(self, bucket_name: str): ...
     def set_bucket_versioning(
         self, bucket_name: str, config: VersioningConfig
@@ -73,10 +75,23 @@ def check_if_object_exists(client: BucketClient, bucket_name, object_name):
         return False
 
 
-@task(cache_policy=NONE)
-def get_file_from_storage(
-    client, bucket_name, file, output_file, to_df: bool = True
+@task
+def get_file_from_storage(  # noqa: PLR0913
+    client,
+    bucket_name,
+    output_file,
+    file: Optional[str] = None,
+    prefix: Optional[str] = None,
+    to_df: bool = True,
 ) -> Optional[pd.DataFrame]:
+    if not file and not prefix:
+        raise ValueError('file or prefix must be provided')
+
+    if prefix:
+        objs = client.list_objects(bucket_name, prefix=prefix)
+        file = sorted(objs, key=lambda o: o.last_modified, reverse=True)[
+            0
+        ].object_name
     obj = client.fget_object(bucket_name, file, output_file)
 
     if to_df and obj.object_name:

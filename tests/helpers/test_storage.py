@@ -52,10 +52,24 @@ def test_get_file_from_object(tmp_path, client):
     with disable_run_logger():
         send_file_to_storage.fn(client, 'raw', file, 'test.csv')
 
-        df = get_file_from_storage(
-            client, 'raw', 'test.csv', tmp_path / 'received.csv'
+        df = get_file_from_storage.fn(
+            client, 'raw', tmp_path / 'received.csv', file='test.csv'
         )
 
     assert isinstance(df, pd.DataFrame)
 
     client.remove_object('raw', 'test.csv')
+
+
+def test_get_file_with_prefix(tmp_path, client):
+    file = tmp_path / 'test.csv'
+    test_data = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+    test_data.to_csv(file, index=False)
+    with disable_run_logger():
+        send_file_to_storage.fn(client, 'raw', file, 'test.csv')
+
+        df = get_file_from_storage.fn(
+            client, 'raw', tmp_path / 'received.csv', prefix='test'
+        )
+
+    assert isinstance(df, pd.DataFrame)

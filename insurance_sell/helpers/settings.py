@@ -117,6 +117,7 @@ class ModelSettings(BaseSettings):
     pipeline: list[Transformer]
     features: list[str]
     target: str
+    bucket_name: str = 'fit_data'
 
     @classmethod
     def settings_customise_sources(  # noqa: D102

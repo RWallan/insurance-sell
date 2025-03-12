@@ -79,7 +79,7 @@ def test_persist_in_storage_must_append(client, tmp_path, monkeypatch):
 
     df.to_csv(tmp_path / 'test.csv', index=False)
 
-    def mock_get_file_from_storage(*args):
+    def mock_get_file_from_storage(*args, **kwargs):
         return df
 
     def mock_put_file_in_storage(*args):
@@ -132,7 +132,7 @@ def test_persist_in_storage_must_overwrite(client, tmp_path, monkeypatch):
 
     df.to_csv(tmp_path / 'test.csv', index=False)
 
-    def mock_get_file_from_storage(*args):
+    def mock_get_file_from_storage(*args, **kwargs):
         return df
 
     def mock_put_file_in_storage(*args):
@@ -187,7 +187,7 @@ def test_persist_in_storage_must_overwrite_if_dont_have_past_object(
 
     df.to_csv(tmp_path / 'test.csv', index=False)
 
-    def mock_get_file_from_storage(*args):
+    def mock_get_file_from_storage(*args, **kwargs):
         return None
 
     def mock_put_file_in_storage(*args):
@@ -228,7 +228,7 @@ def test_extract_flow_must_overwrite_and_send_to_storage(
     expected_len_data = 200_000
     extractor = Extractor(Settings())
 
-    def mock_get_file_from_storage(*args):
+    def mock_get_file_from_storage(*args, **kwargs):
         pass
 
     def mock_put_file_in_storage(*args):
@@ -279,7 +279,7 @@ def test_extract_flow_must_append_file_and_send_to_storage(
         }
     )
 
-    def mock_get_file_from_storage(*args):
+    def mock_get_file_from_storage(*args, **kwargs):
         return df
 
     def mock_put_file_in_storage(*args):
@@ -338,7 +338,7 @@ def test_extract_flow_must_overwrite_file_and_send_to_storage_if_not_check(
         }
     )
 
-    def mock_get_file_from_storage(*args):
+    def mock_get_file_from_storage(*args, **kwargs):
         return df
 
     def mock_put_file_in_storage(*args):
@@ -399,7 +399,7 @@ def test_extract_flow_must_overwrite_file_and_save_local_if_bucket_vars_not_prov
         }
     )
 
-    def mock_get_file_from_storage(*args):
+    def mock_get_file_from_storage(*args, **kwargs):
         return df
 
     def mock_put_file_in_storage(*args):
@@ -464,7 +464,7 @@ def test_extract_flow_must_save_local_if_not_persist_in_storage(  # noqa: E501
         }
     )
 
-    def mock_get_file_from_storage(*args):
+    def mock_get_file_from_storage(*args, **kwargs):
         return df
 
     def mock_put_file_in_storage(*args):

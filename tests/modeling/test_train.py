@@ -6,8 +6,8 @@ from insurance_sell.modeling.train import Trainer
 from insurance_sell.modeling.transformers import StringCleaner
 
 
-def test_init_pipelines(test_model_settings):
-    trainer = Trainer(test_model_settings, '1234')
+def test_init_pipelines(test_model_settings, client):
+    trainer = Trainer(test_model_settings, '1234', client)
     with disable_run_logger():
         trainer.create_pipeline.fn(trainer)
 
@@ -16,8 +16,8 @@ def test_init_pipelines(test_model_settings):
     assert isinstance(trainer._transformers[0][1], StringCleaner)
 
 
-def test_init_model(test_model_settings):
-    trainer = Trainer(test_model_settings, '1234')
+def test_init_model(test_model_settings, client):
+    trainer = Trainer(test_model_settings, '1234', client)
     with disable_run_logger():
         trainer.configure_model.fn(trainer)
 
@@ -26,8 +26,8 @@ def test_init_model(test_model_settings):
     )
 
 
-def test_report_metrics(test_model_settings):
-    trainer = Trainer(test_model_settings, '1234')
+def test_report_metrics(test_model_settings, client):
+    trainer = Trainer(test_model_settings, '1234', client)
     y_true = pd.Series([1, 0, 0, 1, 1, 0])
     y_proba = np.array(
         [[0.3, 0.7], [0.6, 0.4], [0.8, 0.2], [0.2, 0.8], [0, 1], [1, 0]]

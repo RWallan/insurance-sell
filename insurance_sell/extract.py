@@ -81,7 +81,7 @@ class Extractor:
 
         if not overwrite:
             df = get_file_from_storage(
-                client, bucket_name, input_file, output_file
+                client, bucket_name, output_file, file=input_file
             )
             if isinstance(df, pd.DataFrame):
                 df = pd.concat([df, self._raw_data])
