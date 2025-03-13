@@ -23,12 +23,17 @@ class MinioSettings(BaseSettings):
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file='.env', env_file_encoding='utf-8', extra='ignore'
+    )
+
     DATA_SOURCES: list[str] = [
         'https://raw.githubusercontent.com/prsdm/mlops-project/refs/heads/main/data/train.csv',
         'https://raw.githubusercontent.com/prsdm/mlops-project/refs/heads/main/data/test.csv',
     ]
     DATA_SOURCES_BUCKET: str = 'raw'
     OUTPUT_DATA_BUCKET: str = 'raw.csv'
+    MLFLOW_TRACKING_URI: str
 
 
 class ModelSelectionParams(BaseModel):

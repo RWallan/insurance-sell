@@ -5,9 +5,10 @@ import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from insurance_sell.helpers.settings import Settings
 from insurance_sell.helpers.utils import get_model
 
-mlflow.set_tracking_uri('http://localhost:5000')
+mlflow.set_tracking_uri(Settings().MLFLOW_TRACKING_URI)
 loaded_model = get_model('models:/insurance-sell@production')
 
 app = FastAPI()

@@ -33,7 +33,7 @@ client = Minio(
     secret_key=MinioSettings().MINIO_SECRET_KEY,  # type: ignore
     secure=False,
 )
-mlflow.set_tracking_uri('http://localhost:5000')
+mlflow.set_tracking_uri(Settings().MLFLOW_TRACKING_URI)
 
 app = App(version=__version__)
 

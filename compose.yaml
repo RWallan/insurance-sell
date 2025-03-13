@@ -51,6 +51,25 @@ services:
     volumes:
       - prefectdata:/var/lib/postgresql/data
 
+  app:
+    restart: always
+    build: ./insurance-sell-service
+    image: app
+    container_name: app
+    ports:
+      - 8000:8000
+    environment:
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - PREFECT_API_URL=http://prefect:4200/api
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
+      - minio
+      - prefect
+    networks:
+      - backend
 
   mlflow:
     restart: always
