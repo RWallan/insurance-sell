@@ -2,7 +2,7 @@
         import Icon from "@iconify/svelte";
 </script>
 
-<footer class="bg-gray-800">
+<footer class="bg-gray-800 fixed bottom-0 w-full">
         <div
                 class="flex justify-center mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 flex-col text-white text-center"
         >
