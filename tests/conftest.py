@@ -1,10 +1,12 @@
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 from minio import Minio
 from prefect.testing.utilities import prefect_test_harness
 from pydantic_settings import SettingsConfigDict
 
+from insurance_sell.api import app
 from insurance_sell.helpers.settings import MinioSettings, ModelSettings
 
 
@@ -33,3 +35,8 @@ def test_model_settings(monkeypatch):
         SettingsConfigDict(toml_file=TEST_CONFIG_FILE),
     )
     return ModelSettings()  # type: ignore
+
+
+@pytest.fixture
+def http_client():
+    return TestClient(app)
