@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import Literal
 
 import mlflow
 import pandas as pd
@@ -34,6 +35,15 @@ class PredictedValue(BaseModel):
     predicted: int
 
 
+class Metric(BaseModel):
+    metric: str
+    value: float
+
+
+class MetricList(BaseModel):
+    metrics: list[Metric]
+
+
 @app.post(
     '/predict/', status_code=HTTPStatus.CREATED, response_model=PredictedValue
 )
@@ -49,6 +59,12 @@ def predict(input: RawInsuranceSell):
     return {'predicted': int(pred)}
 
 
-@app.get('/metrics/')
-def metrics():
-    return loaded_model['metrics']
+@app.get('/metrics/', response_model=MetricList)
+def metrics(metric: Literal['train', 'test']):
+    metrics = [
+        Metric(metric=key.split('_')[1], value=round(item, 4))
+        for key, item in loaded_model['metrics'].items()
+        if metric in key
+    ]
+
+    return metrics

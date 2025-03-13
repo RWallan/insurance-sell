@@ -20,6 +20,6 @@ def test_predict_must_return_a_predict(http_client):
 
 
 def test_metrics_must_return_metrics(http_client):
-    response = http_client.get('/metrics/')
+    response = http_client.get('/metrics/?metric=train')
 
     assert response.status_code == HTTPStatus.OK
