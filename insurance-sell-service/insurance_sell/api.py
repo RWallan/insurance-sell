@@ -59,7 +59,7 @@ def predict(input: RawInsuranceSell):
     return {'predicted': int(pred)}
 
 
-@app.get('/metrics/', response_model=MetricList)
+@app.get('/metrics/{metric}', response_model=MetricList)
 def metrics(metric: Literal['train', 'test']):
     metrics = [
         Metric(metric=key.split('_')[1], value=round(item, 4))
@@ -67,4 +67,4 @@ def metrics(metric: Literal['train', 'test']):
         if metric in key
     ]
 
-    return metrics
+    return MetricList(metrics=metrics)
