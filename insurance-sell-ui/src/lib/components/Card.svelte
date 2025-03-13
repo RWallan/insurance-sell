@@ -5,8 +5,6 @@
         }
 
         let { title, value }: CardProps = $props();
-        console.log(title);
-        $inspect(title);
 </script>
 
 <div class="max-w-xs rounded overflow-hidden shadow-lg px-6 py-4">
