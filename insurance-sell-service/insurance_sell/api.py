@@ -4,6 +4,7 @@ from typing import Literal
 import mlflow
 import pandas as pd
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from insurance_sell.helpers.settings import Settings
@@ -13,6 +14,13 @@ mlflow.set_tracking_uri(Settings().MLFLOW_TRACKING_URI)
 loaded_model = get_model('models:/insurance-sell@production')
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:5173'],
+    allow_methods=['*'],
+    allow_credentials=True,
+)
 
 
 @app.get('/healthcheck/')
