@@ -8,7 +8,9 @@
                         <div class="flex space-x-4">
                                 <Button href="/" isMenu={true}>Home</Button>
                                 <Button href="#" isMenu={true} isExternal={true}
-                                        >Documentation <span aria-hidden="true"
+                                        >Documentation <span
+                                                aria-hidden="true"
+                                                class="hidden sm:inline"
                                                 >↗</span
                                         ></Button
                                 >
@@ -16,7 +18,9 @@
                                         href="http://localhost:4200"
                                         isMenu={true}
                                         isExternal={true}
-                                        >Pipelines <span aria-hidden="true"
+                                        >Pipelines <span
+                                                aria-hidden="true"
+                                                class="hidden sm:inline"
                                                 >↗</span
                                         ></Button
                                 >
@@ -24,7 +28,10 @@
                                         href="http://localhost:5000"
                                         isMenu={true}
                                         isExternal={true}
-                                        >Model <span aria-hidden="true">↗</span
+                                        >Model <span
+                                                aria-hidden="true"
+                                                class="hidden sm:inline"
+                                                >↗</span
                                         ></Button
                                 >
                         </div>
